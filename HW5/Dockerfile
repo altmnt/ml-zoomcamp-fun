@@ -1,0 +1,14 @@
+FROM agrigorev/zoomcamp-model:2025
+
+RUN pip install uv
+
+WORKDIR /code
+
+COPY "pyproject.toml" ".python-version" "uv.lock" "./"
+
+RUN uv sync --locked
+
+COPY "serve.py" "./"
+EXPOSE 9696
+
+ENTRYPOINT ["uv", "run", "uvicorn", "serve:app", "--host", "0.0.0.0", "--port", "9696"]
