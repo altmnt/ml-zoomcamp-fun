@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐱 Cat or Dog Person? 🐶</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.29.0/full/pyodide.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2E86AB;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+        
+        select, input[type="range"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+            background: white;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #2E86AB;
+        }
+        
+        input[type="range"] {
+            padding: 0;
+        }
+        
+        .age-display {
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2E86AB;
+            margin-top: 5px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .results {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .results.show {
+            display: block;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .result-item {
+            margin: 15px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .result-label {
+            font-weight: bold;
+            color: #333;
+            min-width: 80px;
+        }
+        
+        .result-bar {
+            flex-grow: 1;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            margin: 0 15px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .result-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease-out;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .result-percentage {
+            font-weight: bold;
+            color: #2E86AB;
+            min-width: 60px;
+            text-align: right;
+        }
+        
+        .final-result {
+            text-align: center;
+            margin-top: 25px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+        
+        .winner {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+        }
+        
+        .winner .result-bar-fill {
+            background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%) !important;
+        }
+        
+        .error {
+            color: #d32f2f;
+            padding: 15px;
+            background: #ffebee;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .error.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐱 Cat or Dog Person? 🐶</h1>
+        <p class="subtitle">Answer the questions to discover your type!</p>
+        
+        <div id="loading" class="loading">
+            Loading AI model... Please wait.
+        </div>
+        
+        <form id="questionForm" style="display: none;">
+            <div class="form-group">
+                <label for="age">Age: <span id="ageValue" class="age-display">30</span></label>
+                <input type="range" id="age" name="age" min="18" max="80" value="30">
+            </div>
+            
+            <div class="form-group">
+                <label for="sex">Sex:</label>
+                <select id="sex" name="sex">
+                    <option value="male">Male</option>
+                    <option value="female" selected>Female</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="tip">Settlement Type:</label>
+                <select id="tip" name="tip">
+                    <option value="city_megapolis" selected>City (Megapolis)</option>
+                    <option value="city_big">City (Big)</option>
+                    <option value="city_medium">City (Medium)</option>
+                    <option value="city_small">City (Small)</option>
+                    <option value="village">Village</option>
+                    <option value="rural">Rural</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="tv">How often do you watch TV?</label>
+                <select id="tv" name="tv">
+                    <option value="daily">Daily</option>
+                    <option value="weekly" selected>Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="rarely">Rarely</option>
+                    <option value="never">Never</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="d1">Internet Usage:</label>
+                <select id="d1" name="d1">
+                    <option value="heavy" selected>Heavy</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="light">Light</option>
+                    <option value="rare">Rare</option>
+                    <option value="never">Never</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="edu">Education:</label>
+                <select id="edu" name="edu">
+                    <option value="higher" selected>Higher Education</option>
+                    <option value="vocational">Vocational</option>
+                    <option value="secondary">Secondary</option>
+                    <option value="basic">Basic</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="dohod">Income Level:</label>
+                <select id="dohod" name="dohod">
+                    <option value="high">High</option>
+                    <option value="above_average">Above Average</option>
+                    <option value="average" selected>Average</option>
+                    <option value="below_average">Below Average</option>
+                    <option value="low">Low</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="prof1">Employment Status:</label>
+                <select id="prof1" name="prof1">
+                    <option value="employed" selected>Employed</option>
+                    <option value="worker">Worker</option>
+                    <option value="specialist">Specialist</option>
+                    <option value="manager">Manager</option>
+                    <option value="student">Student</option>
+                    <option value="retiree">Retiree</option>
+                    <option value="housewife">Housewife</option>
+                    <option value="unemployed">Unemployed</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="prof2">Work Sector:</label>
+                <select id="prof2" name="prof2">
+                    <option value="government" selected>Government</option>
+                    <option value="private">Private</option>
+                    <option value="self_employed">Self-Employed</option>
+                    <option value="unknown">Unknown</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="prof3">Work Field:</label>
+                <select id="prof3" name="prof3">
+                    <option value="administration" selected>Administration</option>
+                    <option value="technical">Technical</option>
+                    <option value="service">Service</option>
+                    <option value="education">Education</option>
+                    <option value="healthcare">Healthcare</option>
+                    <option value="trade">Trade</option>
+                    <option value="unknown">Unknown</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            
+            <button type="submit" id="predictBtn">🔮 Predict My Type!</button>
+        </form>
+        
+        <div id="results" class="results"></div>
+        <div id="error" class="error"></div>
+    </div>
+
+    <script type="text/javascript">
+        // Model data embedded as base64
+        const MODEL_DATA_B64 = "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9pLpOJPfv9SGqtOWgIy/s9y3fzmVkD/p4S+pmJzhP3WVccNvqZu/tVsoX3dL2r8sLj8nOrPiv+yTNC9jNL0/r2/pghfesL9DAQhh05jAv3QML4a42de/mzF+5pf6sT8wrHyQZPC1v5R0lGJoPWgfaCJLAIWUaCSHlFKUKEsBSwGFlGg4iUMILuQfdgIO3r+UdJRiaERoH2giSwCFlGgkh5RSlChLAUsBhZRoS4lDBA8AAACUdJRiaE9oUHVidYwKdmVjdG9yaXplcpSMK3NrbGVhcm4uZmVhdHVyZV9leHRyYWN0aW9uLl9kaWN0X3ZlY3Rvcml6ZXKUjA5EaWN0VmVjdG9yaXplcpSTlCmBlH2UKIwFZHR5cGWUaCCMB2Zsb2F0NjSUk5SMCXNlcGFyYXRvcpSMAT2UjAZzcGFyc2WUiYwEc29ydJSIjA5mZWF0dXJlX25hbWVzX5RdlCiMA0FHRZSMD0RPSE9EXzA9YXZlcmFnZZSMDERPSE9EXzA9Z29vZJSMDERPSE9EXzA9cG9vcpSMD0RPSE9EXzA9dW5rbm93bpSMEURPSE9EXzA9dmVyeV9nb29klIwRRE9IT0RfMD12ZXJ5X3Bvb3KUjAxFRFU9YWR2YW5jZWSUjAlFRFU9YmFzaWOUjApFRFU9aGlnaGVylIwORURVPWluY29tcGxldGWUjAtFRFU9cmVmdXNlZJSMDUVEVT1zZWNvbmRhcnmUjA5FRFU9dm9jYXRpb25hbJSMDlBST0YxPWVtcGxveWVklIwSUFJPRjE9ZW50cmVwcmVuZXVylIwPUFJPRjE9bWF0ZXJuaXR5lIwPUFJPRjE9cGVuc2lvbmVylIwXUFJPRjE9cGVuc2lvbmVyX3dvcmtpbmeUjA1QUk9GMT1yZWZ1c2VklIwTUFJPRjE9c2VsZl9lbXBsb3llZJSMDVBST0YxPXN0dWRlbnSUjBVQUk9GMT1zdHVkZW50X3dvcmtpbmeUjBBQUk9GMT11bmVtcGxveWVklIwNUFJPRjE9dW5rbm93bpSMD1BST0YyPWJ1ZGdldGFyeZSMEFBST0YyPWNvbW1lcmNpYWyUjBBQUk9GMj1nb3Zlcm5tZW50lIwVUFJPRjI9bGF3X2VuZm9yY2VtZW50lIwPUFJPRjI9bm9ucHJvZml0lIwNUFJPRjI9dW5rbm93bpSMFFBST0YzPWFkbWluaXN0cmF0aW9ulIwRUFJPRjM9YWdyaWN1bHR1cmWUjBJQUk9GMz1jb25zdHJ1Y3Rpb26UjA1QUk9GMz1jdWx0dXJllIwPUFJPRjM9ZWR1Y2F0aW9ulIwTUFJPRjM9ZW50ZXJ0YWlubWVudJSMDVBST0YzPWZpbmFuY2WUjBBQUk9GMz1oZWFsdGhjYXJllIwRUFJPRjM9aG9zcGl0YWxpdHmUjA5QUk9GMz1pbmR1c3RyeZSMCFBST0YzPWl0lIwVUFJPRjM9bGF3X2VuZm9yY2VtZW50lIwLUFJPRjM9bWVkaWGUjAtQUk9GMz1vdGhlcpSMDVBST0YzPXJlZnVzZWSUjA5QUk9GMz1zZXJ2aWNlc5SMFVBST0YzPXNvY2lhbF9zZXJ2aWNlc5SMC1BST0YzPXRyYWRllIwUUFJPRjM9dHJhbnNwb3J0YXRpb26UjA1QUk9GMz11bmtub3dulIwPUFJPRjM9dXRpbGl0aWVzlIwKU0VYPWZlbWFsZZSMCFNFWD1tYWxllIwOVElQPWNpdHlfbGFyZ2WUjA9USVA9Y2l0eV9tZWRpdW2UjBJUSVA9Y2l0eV9tZWdhcG9saXOUjA5USVA9Y2l0eV9zbWFsbJSME1RJUD1jaXR5X3ZlcnlfbGFyZ2WUjA5USVA9c2V0dGxlbWVudJSMC1RJUD12aWxsYWdllIwIVFY9ZGFpbHmUjAhUVj1oZWF2eZSMClRWPW1vbnRobHmUjAhUVj1uZXZlcpSMCVRWPXJhcmVseZSMCVRWPXdlZWtseZSMCGQxPWRhaWx5lIwIZDE9aGVhdnmUjApkMT1tb250aGx5lIwIZDE9bmV2ZXKUjAlkMT1yYXJlbHmUjAlkMT13ZWVrbHmUZYwLdm9jYWJ1bGFyeV+UfZQoaLFLAGiySwFos0sCaLRLA2i1SwRotksFaLdLBmi4SwdouUsIaLpLCWi7SwpovEsLaL1LDGi+Sw1ov0sOaMBLD2jBSxBowksRaMNLEmjESxNoxUsUaMZLFWjHSxZoyEsXaMlLGGjKSxloy0saaMxLG2jNSxxozksdaM9LHmjQSx9o0UsgaNJLIWjTSyJo1EsjaNVLJGjWSyVo10smaNhLJ2jZSyho2kspaNtLKmjcSyto3UssaN5LLWjfSy5o4EsvaOFLMGjiSzFo40syaORLM2jlSzRo5ks1aOdLNmjoSzdo6Us4aOpLOWjrSzpo7Es7aO1LPGjuSz1o70s+aPBLP2jxS0Bo8ktBaPNLQmj0S0No9UtEaPZLRWj3S0Zo+EtHaPlLSHVoT2hQdWKMBmxhYmVsc5RdlChoA2hRaGxoh2V1Lg==";
+        
+        let pyodide;
+        let modelLoaded = false;
+
+        // Age slider update
+        document.addEventListener('DOMContentLoaded', function() {
+            const ageSlider = document.getElementById('age');
+            const ageValue = document.getElementById('ageValue');
+            
+            if (ageSlider) {
+                ageSlider.addEventListener('input', function() {
+                    ageValue.textContent = this.value;
+                });
+            }
+        });
+
+        async function loadPyodideAsync() {
+            try {
+                pyodide = await loadPyodide();
+                
+                // Load required packages
+                await pyodide.loadPackage(['numpy', 'scikit-learn']);
+                
+                // Pass model data to Python namespace
+                pyodide.globals.set('MODEL_DATA_B64', MODEL_DATA_B64);
+                
+                // Decode and load model
+                await pyodide.runPythonAsync(`
+import pickle
+import base64
+import numpy as np
+from sklearn.feature_extraction import DictVectorizer
+
+# Get model data from global namespace
+model_b64 = MODEL_DATA_B64
+model_bytes = base64.b64decode(model_b64)
+model_data = pickle.loads(model_bytes)
+
+models = model_data['models']
+vectorizer = model_data['vectorizer']
+labels = model_data['labels']
+
+def predict(data):
+    # Transform input
+    X = vectorizer.transform([data])
+    
+    # Get predictions from all models
+    predictions = {}
+    for label in labels:
+        prob = models[label].predict_proba(X)[0, 1]
+        predictions[label] = float(prob)
+    
+    return predictions
+                `);
+                
+                modelLoaded = true;
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('questionForm').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading Pyodide:', error);
+                showError('Failed to load AI model. Please refresh the page.');
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function hideError() {
+            const errorDiv = document.getElementById('error');
+            errorDiv.classList.remove('show');
+        }
+
+        async function makePrediction(formData) {
+            if (!modelLoaded) {
+                showError('Model not loaded yet. Please wait.');
+                return;
+            }
+
+            hideError();
+            
+            const predictBtn = document.getElementById('predictBtn');
+            predictBtn.disabled = true;
+            predictBtn.textContent = 'Predicting...';
+
+            try {
+                // Prepare data for prediction
+                const data = {
+                    AGE: parseFloat(formData.age),
+                    SEX: formData.sex,
+                    TIP: formData.tip,
+                    TV: formData.tv,
+                    d1: formData.d1,
+                    EDU: formData.edu,
+                    DOHOD_0: formData.dohod,
+                    PROF1: formData.prof1,
+                    PROF2: formData.prof2,
+                    PROF3: formData.prof3
+                };
+
+                // Convert to Python dict and predict
+                const predictions = await pyodide.runPythonAsync(`
+import json
+data = ${JSON.stringify(data)}
+result = predict(data)
+json.dumps(result)
+                `);
+
+                const predDict = JSON.parse(predictions);
+                displayResults(predDict);
+            } catch (error) {
+                console.error('Prediction error:', error);
+                showError('Prediction failed. Please try again.');
+            } finally {
+                predictBtn.disabled = false;
+                predictBtn.textContent = '🔮 Predict My Type!';
+            }
+        }
+
+        function displayResults(predictions) {
+            // Sort by probability
+            const sorted = Object.entries(predictions)
+                .sort((a, b) => b[1] - a[1]);
+            
+            const bestType = sorted[0][0];
+            
+            let html = '<h3 style="margin-bottom: 20px; color: #333;">Prediction Results:</h3>';
+            
+            sorted.forEach(([label, prob]) => {
+                const percentage = (prob * 100).toFixed(1);
+                const isWinner = label === bestType;
+                const winnerClass = isWinner ? 'winner' : '';
+                
+                html += `
+                    <div class="result-item ${winnerClass}">
+                        <div class="result-label">${label}</div>
+                        <div class="result-bar">
+                            <div class="result-bar-fill" style="width: ${percentage}%">
+                                ${percentage}%
+                            </div>
+                        </div>
+                        ${isWinner ? '<span style="font-size: 1.5em;">👈</span>' : ''}
+                    </div>
+                `;
+            });
+            
+            html += `
+                <div class="final-result">
+                    🎯 You are most likely a <strong>${bestType}</strong> person!
+                </div>
+            `;
+            
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = html;
+            resultsDiv.classList.add('show');
+        }
+
+        // Form submission
+        document.getElementById('questionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                age: document.getElementById('age').value,
+                sex: document.getElementById('sex').value,
+                tip: document.getElementById('tip').value,
+                tv: document.getElementById('tv').value,
+                d1: document.getElementById('d1').value,
+                edu: document.getElementById('edu').value,
+                dohod: document.getElementById('dohod').value,
+                prof1: document.getElementById('prof1').value,
+                prof2: document.getElementById('prof2').value,
+                prof3: document.getElementById('prof3').value
+            };
+            
+            await makePrediction(formData);
+        });
+
+        // Initialize - wait for Pyodide script to load
+        async function main() {
+            // Check if loadPyodide is available
+            if (typeof loadPyodide === 'undefined') {
+                console.log('Waiting for Pyodide to load...');
+                // Wait a bit and try again
+                setTimeout(main, 100);
+                return;
+            }
+            await loadPyodideAsync();
+        }
+        
+        // Start initialization when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', main);
+        } else {
+            main();
+        }
+    </script>
+</body>
+</html>
